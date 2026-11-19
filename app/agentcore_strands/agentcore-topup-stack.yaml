@@ -239,9 +239,9 @@ Resources:
           AllowedClients:
             - Fn::ImportValue: !Sub '${EnvironmentName}-UserLoginClientId'
       # --- Step 7a: ALSO uncomment these 3 lines (the Gateway -> Policy Engine wiring) ---
-      # PolicyEngineConfiguration:
-      #   Arn: !GetAtt PolicyEngine.PolicyEngineArn
-      #   Mode: !Ref PolicyMode
+      PolicyEngineConfiguration:
+        Arn: !GetAtt PolicyEngine.PolicyEngineArn
+        Mode: !Ref PolicyMode
       InterceptorConfigurations:
         - Interceptor:
             Lambda:
@@ -553,377 +553,377 @@ Resources:
 
   # ===== UNCOMMENT FROM HERE (Step 5: API integration toolset (create_booking)) ======
 
-#   #============================================================================
-#   # APIInteg Lambda (create_booking write tool)
-#   #============================================================================
-#   ApiIntegLambdaRole:
-#     Type: AWS::IAM::Role
-#     Properties:
-#       RoleName: !Sub ${EnvironmentName}-api-integ-role
-#       AssumeRolePolicyDocument:
-#         Version: '2012-10-17'
-#         Statement:
-#           - Effect: Allow
-#             Principal:
-#               Service: lambda.amazonaws.com
-#             Action: sts:AssumeRole
-#       ManagedPolicyArns:
-#         - arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole
-#       Policies:
-#         - PolicyName: ApiIntegPolicy
-#           PolicyDocument:
-#             Version: '2012-10-17'
-#             Statement:
-#               - Effect: Allow
-#                 Action: secretsmanager:GetSecretValue
-#                 Resource:
-#                   - Fn::ImportValue: !Sub '${EnvironmentName}-DatabaseSecretArn'
-#                   - Fn::ImportValue: !Sub '${EnvironmentName}-AppDatabaseSecretArn'
-#               # Read the runtime RLS feature flag (TODO 7.2 toggle).
-#               - Effect: Allow
-#                 Action: ssm:GetParameter
-#                 Resource: !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${EnvironmentName}/rls-mode
+  #============================================================================
+  # APIInteg Lambda (create_booking write tool)
+  #============================================================================
+  ApiIntegLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub ${EnvironmentName}-api-integ-role
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole
+      Policies:
+        - PolicyName: ApiIntegPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: secretsmanager:GetSecretValue
+                Resource:
+                  - Fn::ImportValue: !Sub '${EnvironmentName}-DatabaseSecretArn'
+                  - Fn::ImportValue: !Sub '${EnvironmentName}-AppDatabaseSecretArn'
+              # Read the runtime RLS feature flag (TODO 7.2 toggle).
+              - Effect: Allow
+                Action: ssm:GetParameter
+                Resource: !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${EnvironmentName}/rls-mode
 
-#   ApiIntegLambda:
-#     Type: AWS::Lambda::Function
-#     Properties:
-#       FunctionName: !Sub ${EnvironmentName}-api-integration-toolset
-#       Runtime: python3.12
-#       Handler: api_integration_toolset_lambda.lambda_handler
-#       Role: !GetAtt ApiIntegLambdaRole.Arn
-#       Timeout: 60
-#       MemorySize: 256
-#       Code:
-#         S3Bucket: !Ref ArtifactsBucket
-#         S3Key: !Sub ${ArtifactsPrefix}${ApiIntegLambdaKey}
-#       Layers:
-#         - !If [NeedsPsycopg2Layer, !Ref Psycopg2Layer, !Ref Psycopg2LayerArn]
-#         - !If [NeedsPyJwtLayer, !Ref PyJwtLayer, !Ref PyJwtLayerArn]
-#       VpcConfig:
-#         SubnetIds:
-#           - Fn::ImportValue: !Sub '${EnvironmentName}-PrivateSubnet1Id'
-#           - Fn::ImportValue: !Sub '${EnvironmentName}-PrivateSubnet2Id'
-#         SecurityGroupIds:
-#           - Fn::ImportValue: !Sub '${EnvironmentName}-LambdaSecurityGroupId'
-#       Environment:
-#         Variables:
-#           AURORA_ENDPOINT:
-#             Fn::ImportValue: !Sub '${EnvironmentName}-AuroraClusterEndpoint'
-#           # RLS toggle is at RUNTIME (TODO 7.2): both secrets are wired here and
-#           # the Lambda picks one based on the RlsParameter SSM flag. No redeploy
-#           # to flip RLS — so this config never changes and the published version
-#           # stays valid for provisioned concurrency.
-#           AURORA_SECRET_ARN:                                    # postgres owner (RLS bypassed)
-#             Fn::ImportValue: !Sub '${EnvironmentName}-DatabaseSecretArn'
-#           APP_AURORA_SECRET_ARN:                                # app_user (RLS enforced)
-#             Fn::ImportValue: !Sub '${EnvironmentName}-AppDatabaseSecretArn'
-#           RLS_PARAM_NAME: !Sub /${EnvironmentName}/rls-mode
-#           AURORA_DATABASE: timely_unicorn
-#           # JWT verification: validate the propagated Cognito access token
-#           # before trusting account_id/role for RLS.
-#           COGNITO_USER_POOL_ID:
-#             Fn::ImportValue: !Sub '${EnvironmentName}-UserPoolId'
-#           COGNITO_USER_LOGIN_CLIENT_ID:
-#             Fn::ImportValue: !Sub '${EnvironmentName}-UserLoginClientId'
+  ApiIntegLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub ${EnvironmentName}-api-integration-toolset
+      Runtime: python3.12
+      Handler: api_integration_toolset_lambda.lambda_handler
+      Role: !GetAtt ApiIntegLambdaRole.Arn
+      Timeout: 60
+      MemorySize: 256
+      Code:
+        S3Bucket: !Ref ArtifactsBucket
+        S3Key: !Sub ${ArtifactsPrefix}${ApiIntegLambdaKey}
+      Layers:
+        - !If [NeedsPsycopg2Layer, !Ref Psycopg2Layer, !Ref Psycopg2LayerArn]
+        - !If [NeedsPyJwtLayer, !Ref PyJwtLayer, !Ref PyJwtLayerArn]
+      VpcConfig:
+        SubnetIds:
+          - Fn::ImportValue: !Sub '${EnvironmentName}-PrivateSubnet1Id'
+          - Fn::ImportValue: !Sub '${EnvironmentName}-PrivateSubnet2Id'
+        SecurityGroupIds:
+          - Fn::ImportValue: !Sub '${EnvironmentName}-LambdaSecurityGroupId'
+      Environment:
+        Variables:
+          AURORA_ENDPOINT:
+            Fn::ImportValue: !Sub '${EnvironmentName}-AuroraClusterEndpoint'
+          # RLS toggle is at RUNTIME (TODO 7.2): both secrets are wired here and
+          # the Lambda picks one based on the RlsParameter SSM flag. No redeploy
+          # to flip RLS — so this config never changes and the published version
+          # stays valid for provisioned concurrency.
+          AURORA_SECRET_ARN:                                    # postgres owner (RLS bypassed)
+            Fn::ImportValue: !Sub '${EnvironmentName}-DatabaseSecretArn'
+          APP_AURORA_SECRET_ARN:                                # app_user (RLS enforced)
+            Fn::ImportValue: !Sub '${EnvironmentName}-AppDatabaseSecretArn'
+          RLS_PARAM_NAME: !Sub /${EnvironmentName}/rls-mode
+          AURORA_DATABASE: timely_unicorn
+          # JWT verification: validate the propagated Cognito access token
+          # before trusting account_id/role for RLS.
+          COGNITO_USER_POOL_ID:
+            Fn::ImportValue: !Sub '${EnvironmentName}-UserPoolId'
+          COGNITO_USER_LOGIN_CLIENT_ID:
+            Fn::ImportValue: !Sub '${EnvironmentName}-UserLoginClientId'
 
-#   ApiIntegVersion:
-#     Type: AWS::Lambda::Version
-#     Properties:
-#       FunctionName: !Ref ApiIntegLambda
-#       Description: Version fronted by the live alias for provisioned concurrency
+  ApiIntegVersion:
+    Type: AWS::Lambda::Version
+    Properties:
+      FunctionName: !Ref ApiIntegLambda
+      Description: Version fronted by the live alias for provisioned concurrency
 
-#   ApiIntegAlias:
-#     Type: AWS::Lambda::Alias
-#     Properties:
-#       FunctionName: !Ref ApiIntegLambda
-#       FunctionVersion: !GetAtt ApiIntegVersion.Version
-#       Name: live
-#       ProvisionedConcurrencyConfig:
-#         ProvisionedConcurrentExecutions: 1
+  ApiIntegAlias:
+    Type: AWS::Lambda::Alias
+    Properties:
+      FunctionName: !Ref ApiIntegLambda
+      FunctionVersion: !GetAtt ApiIntegVersion.Version
+      Name: live
+      ProvisionedConcurrencyConfig:
+        ProvisionedConcurrentExecutions: 1
 
-#   ApiIntegLambdaPermission:
-#     Type: AWS::Lambda::Permission
-#     Properties:
-#       FunctionName: !Ref ApiIntegAlias
-#       Action: lambda:InvokeFunction
-#       Principal: bedrock-agentcore.amazonaws.com
+  ApiIntegLambdaPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref ApiIntegAlias
+      Action: lambda:InvokeFunction
+      Principal: bedrock-agentcore.amazonaws.com
 
-#   #============================================================================
-#   # Gateway Target — APIInteg (create_booking write tool)
-#   #============================================================================
-#   ApiIntegTarget:
-#     Type: AWS::BedrockAgentCore::GatewayTarget
-#     DependsOn:
-#       - Gateway
-#       - ApiIntegLambdaPermission
-#     Properties:
-#       GatewayIdentifier: !GetAtt Gateway.GatewayIdentifier
-#       Name: APIInteg
-#       Description: API integration tools (booking creation)
-#       CredentialProviderConfigurations:
-#         - CredentialProviderType: GATEWAY_IAM_ROLE
-#       TargetConfiguration:
-#         Mcp:
-#           Lambda:
-#             LambdaArn: !Ref ApiIntegAlias
-#             ToolSchema:
-#               InlinePayload:
-#                 - Name: create_booking_tool
-#                   Description: Create a new unicorn booking. Validates unicorn availability and calculates cost based on hourly rate and duration.
-#                   InputSchema:
-#                     Type: object
-#                     Properties:
-#                       customer_id: { Type: string, Description: The customer ID making the booking }
-#                       unicorn_id: { Type: string, Description: The unicorn ID to book }
-#                       start_datetime: { Type: string, Description: 'Booking start time in ISO format (e.g., 2026-02-01T10:00:00)' }
-#                       end_datetime: { Type: string, Description: 'Booking end time in ISO format (e.g., 2026-02-01T14:00:00)' }
-#                       special_requests: { Type: string, Description: Optional special requests }
-#                       pickup_location: { Type: string, Description: Optional pickup location }
-#                       dropoff_location: { Type: string, Description: Optional dropoff location }
-#                     Required: [customer_id, unicorn_id, start_datetime, end_datetime]
+  #============================================================================
+  # Gateway Target — APIInteg (create_booking write tool)
+  #============================================================================
+  ApiIntegTarget:
+    Type: AWS::BedrockAgentCore::GatewayTarget
+    DependsOn:
+      - Gateway
+      - ApiIntegLambdaPermission
+    Properties:
+      GatewayIdentifier: !GetAtt Gateway.GatewayIdentifier
+      Name: APIInteg
+      Description: API integration tools (booking creation)
+      CredentialProviderConfigurations:
+        - CredentialProviderType: GATEWAY_IAM_ROLE
+      TargetConfiguration:
+        Mcp:
+          Lambda:
+            LambdaArn: !Ref ApiIntegAlias
+            ToolSchema:
+              InlinePayload:
+                - Name: create_booking_tool
+                  Description: Create a new unicorn booking. Validates unicorn availability and calculates cost based on hourly rate and duration.
+                  InputSchema:
+                    Type: object
+                    Properties:
+                      customer_id: { Type: string, Description: The customer ID making the booking }
+                      unicorn_id: { Type: string, Description: The unicorn ID to book }
+                      start_datetime: { Type: string, Description: 'Booking start time in ISO format (e.g., 2026-02-01T10:00:00)' }
+                      end_datetime: { Type: string, Description: 'Booking end time in ISO format (e.g., 2026-02-01T14:00:00)' }
+                      special_requests: { Type: string, Description: Optional special requests }
+                      pickup_location: { Type: string, Description: Optional pickup location }
+                      dropoff_location: { Type: string, Description: Optional dropoff location }
+                    Required: [customer_id, unicorn_id, start_datetime, end_datetime]
   # ===== UNCOMMENT TO HERE (Step 5) ======
 
   # ===== UNCOMMENT FROM HERE (Step 6: Custom SQL toolset (text-to-SQL + Glue + KB RAG)) ======
 
-#   #============================================================================
-#   # CustomSQL Lambda (text-to-SQL with Glue schema + Bedrock KB RAG)
-#   #============================================================================
-#   CustomSqlLambdaRole:
-#     Type: AWS::IAM::Role
-#     Properties:
-#       RoleName: !Sub ${EnvironmentName}-custom-sql-role
-#       AssumeRolePolicyDocument:
-#         Version: '2012-10-17'
-#         Statement:
-#           - Effect: Allow
-#             Principal:
-#               Service: lambda.amazonaws.com
-#             Action: sts:AssumeRole
-#       ManagedPolicyArns:
-#         - arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole
-#       Policies:
-#         - PolicyName: CustomSqlPolicy
-#           PolicyDocument:
-#             Version: '2012-10-17'
-#             Statement:
-#               - Effect: Allow
-#                 Action: secretsmanager:GetSecretValue
-#                 Resource:
-#                   - Fn::ImportValue: !Sub '${EnvironmentName}-DatabaseSecretArn'
-#                   - Fn::ImportValue: !Sub '${EnvironmentName}-AppDatabaseSecretArn'
-#               # Read the runtime RLS feature flag (TODO 7.2 toggle).
-#               - Effect: Allow
-#                 Action: ssm:GetParameter
-#                 Resource: !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${EnvironmentName}/rls-mode
-#               - Effect: Allow
-#                 Action:
-#                   - glue:GetTables
-#                   - glue:GetTable
-#                   - glue:GetDatabase
-#                 Resource: '*'
-#               - Effect: Allow
-#                 Action:
-#                   - bedrock:Retrieve
-#                   - bedrock:InvokeModel
-#                   - bedrock-agent-runtime:Retrieve
-#                 Resource: '*'
+  #============================================================================
+  # CustomSQL Lambda (text-to-SQL with Glue schema + Bedrock KB RAG)
+  #============================================================================
+  CustomSqlLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub ${EnvironmentName}-custom-sql-role
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole
+      Policies:
+        - PolicyName: CustomSqlPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: secretsmanager:GetSecretValue
+                Resource:
+                  - Fn::ImportValue: !Sub '${EnvironmentName}-DatabaseSecretArn'
+                  - Fn::ImportValue: !Sub '${EnvironmentName}-AppDatabaseSecretArn'
+              # Read the runtime RLS feature flag (TODO 7.2 toggle).
+              - Effect: Allow
+                Action: ssm:GetParameter
+                Resource: !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${EnvironmentName}/rls-mode
+              - Effect: Allow
+                Action:
+                  - glue:GetTables
+                  - glue:GetTable
+                  - glue:GetDatabase
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - bedrock:Retrieve
+                  - bedrock:InvokeModel
+                  - bedrock-agent-runtime:Retrieve
+                Resource: '*'
 
-#   CustomSqlLambda:
-#     Type: AWS::Lambda::Function
-#     Properties:
-#       FunctionName: !Sub ${EnvironmentName}-custom-sql-toolset
-#       Runtime: python3.12
-#       Handler: custom_sql_toolset_lambda.lambda_handler
-#       Role: !GetAtt CustomSqlLambdaRole.Arn
-#       Timeout: 60
-#       MemorySize: 256
-#       Code:
-#         S3Bucket: !Ref ArtifactsBucket
-#         S3Key: !Sub ${ArtifactsPrefix}${CustomSqlLambdaKey}
-#       Layers:
-#         - !If [NeedsPsycopg2Layer, !Ref Psycopg2Layer, !Ref Psycopg2LayerArn]
-#         - !If [NeedsPyJwtLayer, !Ref PyJwtLayer, !Ref PyJwtLayerArn]
-#       VpcConfig:
-#         SubnetIds:
-#           - Fn::ImportValue: !Sub '${EnvironmentName}-PrivateSubnet1Id'
-#           - Fn::ImportValue: !Sub '${EnvironmentName}-PrivateSubnet2Id'
-#         SecurityGroupIds:
-#           - Fn::ImportValue: !Sub '${EnvironmentName}-LambdaSecurityGroupId'
-#       Environment:
-#         Variables:
-#           AURORA_ENDPOINT:
-#             Fn::ImportValue: !Sub '${EnvironmentName}-AuroraClusterEndpoint'
-#           # RLS toggle is at RUNTIME (TODO 7.2): both secrets are wired here and
-#           # the Lambda picks one based on the RlsParameter SSM flag. No redeploy
-#           # to flip RLS — so this config never changes and the published version
-#           # stays valid for provisioned concurrency.
-#           AURORA_SECRET_ARN:                                    # postgres owner (RLS bypassed)
-#             Fn::ImportValue: !Sub '${EnvironmentName}-DatabaseSecretArn'
-#           APP_AURORA_SECRET_ARN:                                # app_user (RLS enforced)
-#             Fn::ImportValue: !Sub '${EnvironmentName}-AppDatabaseSecretArn'
-#           RLS_PARAM_NAME: !Sub /${EnvironmentName}/rls-mode
-#           AURORA_DATABASE: timely_unicorn
-#           GLUE_DATABASE:
-#             Fn::ImportValue: !Sub '${EnvironmentName}-GlueDatabaseName'
-#           BEDROCK_KB_ID:
-#             Fn::ImportValue: !Sub '${EnvironmentName}-KnowledgeBaseId'
-#           # JWT verification: validate the propagated Cognito access token
-#           # before trusting account_id/role for RLS.
-#           COGNITO_USER_POOL_ID:
-#             Fn::ImportValue: !Sub '${EnvironmentName}-UserPoolId'
-#           COGNITO_USER_LOGIN_CLIENT_ID:
-#             Fn::ImportValue: !Sub '${EnvironmentName}-UserLoginClientId'
+  CustomSqlLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub ${EnvironmentName}-custom-sql-toolset
+      Runtime: python3.12
+      Handler: custom_sql_toolset_lambda.lambda_handler
+      Role: !GetAtt CustomSqlLambdaRole.Arn
+      Timeout: 60
+      MemorySize: 256
+      Code:
+        S3Bucket: !Ref ArtifactsBucket
+        S3Key: !Sub ${ArtifactsPrefix}${CustomSqlLambdaKey}
+      Layers:
+        - !If [NeedsPsycopg2Layer, !Ref Psycopg2Layer, !Ref Psycopg2LayerArn]
+        - !If [NeedsPyJwtLayer, !Ref PyJwtLayer, !Ref PyJwtLayerArn]
+      VpcConfig:
+        SubnetIds:
+          - Fn::ImportValue: !Sub '${EnvironmentName}-PrivateSubnet1Id'
+          - Fn::ImportValue: !Sub '${EnvironmentName}-PrivateSubnet2Id'
+        SecurityGroupIds:
+          - Fn::ImportValue: !Sub '${EnvironmentName}-LambdaSecurityGroupId'
+      Environment:
+        Variables:
+          AURORA_ENDPOINT:
+            Fn::ImportValue: !Sub '${EnvironmentName}-AuroraClusterEndpoint'
+          # RLS toggle is at RUNTIME (TODO 7.2): both secrets are wired here and
+          # the Lambda picks one based on the RlsParameter SSM flag. No redeploy
+          # to flip RLS — so this config never changes and the published version
+          # stays valid for provisioned concurrency.
+          AURORA_SECRET_ARN:                                    # postgres owner (RLS bypassed)
+            Fn::ImportValue: !Sub '${EnvironmentName}-DatabaseSecretArn'
+          APP_AURORA_SECRET_ARN:                                # app_user (RLS enforced)
+            Fn::ImportValue: !Sub '${EnvironmentName}-AppDatabaseSecretArn'
+          RLS_PARAM_NAME: !Sub /${EnvironmentName}/rls-mode
+          AURORA_DATABASE: timely_unicorn
+          GLUE_DATABASE:
+            Fn::ImportValue: !Sub '${EnvironmentName}-GlueDatabaseName'
+          BEDROCK_KB_ID:
+            Fn::ImportValue: !Sub '${EnvironmentName}-KnowledgeBaseId'
+          # JWT verification: validate the propagated Cognito access token
+          # before trusting account_id/role for RLS.
+          COGNITO_USER_POOL_ID:
+            Fn::ImportValue: !Sub '${EnvironmentName}-UserPoolId'
+          COGNITO_USER_LOGIN_CLIENT_ID:
+            Fn::ImportValue: !Sub '${EnvironmentName}-UserLoginClientId'
 
-#   CustomSqlVersion:
-#     Type: AWS::Lambda::Version
-#     Properties:
-#       FunctionName: !Ref CustomSqlLambda
-#       Description: Version fronted by the live alias for provisioned concurrency
+  CustomSqlVersion:
+    Type: AWS::Lambda::Version
+    Properties:
+      FunctionName: !Ref CustomSqlLambda
+      Description: Version fronted by the live alias for provisioned concurrency
 
-#   CustomSqlAlias:
-#     Type: AWS::Lambda::Alias
-#     Properties:
-#       FunctionName: !Ref CustomSqlLambda
-#       FunctionVersion: !GetAtt CustomSqlVersion.Version
-#       Name: live
-#       ProvisionedConcurrencyConfig:
-#         ProvisionedConcurrentExecutions: 1
+  CustomSqlAlias:
+    Type: AWS::Lambda::Alias
+    Properties:
+      FunctionName: !Ref CustomSqlLambda
+      FunctionVersion: !GetAtt CustomSqlVersion.Version
+      Name: live
+      ProvisionedConcurrencyConfig:
+        ProvisionedConcurrentExecutions: 1
 
-#   CustomSqlLambdaPermission:
-#     Type: AWS::Lambda::Permission
-#     Properties:
-#       FunctionName: !Ref CustomSqlAlias
-#       Action: lambda:InvokeFunction
-#       Principal: bedrock-agentcore.amazonaws.com
+  CustomSqlLambdaPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref CustomSqlAlias
+      Action: lambda:InvokeFunction
+      Principal: bedrock-agentcore.amazonaws.com
 
-#   #============================================================================
-#   # Gateway Target — CustomSQL (text-to-SQL with human approval)
-#   #============================================================================
-#   CustomSqlTarget:
-#     Type: AWS::BedrockAgentCore::GatewayTarget
-#     DependsOn:
-#       - Gateway
-#       - CustomSqlLambdaPermission
-#     Properties:
-#       GatewayIdentifier: !GetAtt Gateway.GatewayIdentifier
-#       Name: CustomSQL
-#       Description: Custom SQL tools backed by Glue catalog and Bedrock KB RAG
-#       CredentialProviderConfigurations:
-#         - CredentialProviderType: GATEWAY_IAM_ROLE
-#       TargetConfiguration:
-#         Mcp:
-#           Lambda:
-#             LambdaArn: !Ref CustomSqlAlias
-#             ToolSchema:
-#               InlinePayload:
-#                 - Name: text_to_sql_tool
-#                   Description: Convert natural language question to SQL context. Use when user asks analytics questions not covered by existing tools. Returns schema, business context, and a suggested SQL query for user approval.
-#                   InputSchema:
-#                     Type: object
-#                     Properties:
-#                       question: { Type: string, Description: Natural language analytics question }
-#                     Required: [question]
-#                 - Name: get_schema_context_tool
-#                   Description: Get database table schemas from Glue catalog. Use to understand available tables and columns.
-#                   InputSchema:
-#                     Type: object
-#                     Properties:
-#                       tables:
-#                         Type: array
-#                         Items: { Type: string }
-#                         Description: List of table names (empty for all)
-#                 - Name: execute_sql_tool
-#                   Description: Execute an approved SQL query against the database. Only use after user has approved the SQL query. Only SELECT queries are allowed.
-#                   InputSchema:
-#                     Type: object
-#                     Properties:
-#                       sql: { Type: string, Description: 'The SQL query to execute (must be SELECT only)' }
-#                     Required: [sql]
+  #============================================================================
+  # Gateway Target — CustomSQL (text-to-SQL with human approval)
+  #============================================================================
+  CustomSqlTarget:
+    Type: AWS::BedrockAgentCore::GatewayTarget
+    DependsOn:
+      - Gateway
+      - CustomSqlLambdaPermission
+    Properties:
+      GatewayIdentifier: !GetAtt Gateway.GatewayIdentifier
+      Name: CustomSQL
+      Description: Custom SQL tools backed by Glue catalog and Bedrock KB RAG
+      CredentialProviderConfigurations:
+        - CredentialProviderType: GATEWAY_IAM_ROLE
+      TargetConfiguration:
+        Mcp:
+          Lambda:
+            LambdaArn: !Ref CustomSqlAlias
+            ToolSchema:
+              InlinePayload:
+                - Name: text_to_sql_tool
+                  Description: Convert natural language question to SQL context. Use when user asks analytics questions not covered by existing tools. Returns schema, business context, and a suggested SQL query for user approval.
+                  InputSchema:
+                    Type: object
+                    Properties:
+                      question: { Type: string, Description: Natural language analytics question }
+                    Required: [question]
+                - Name: get_schema_context_tool
+                  Description: Get database table schemas from Glue catalog. Use to understand available tables and columns.
+                  InputSchema:
+                    Type: object
+                    Properties:
+                      tables:
+                        Type: array
+                        Items: { Type: string }
+                        Description: List of table names (empty for all)
+                - Name: execute_sql_tool
+                  Description: Execute an approved SQL query against the database. Only use after user has approved the SQL query. Only SELECT queries are allowed.
+                  InputSchema:
+                    Type: object
+                    Properties:
+                      sql: { Type: string, Description: 'The SQL query to execute (must be SELECT only)' }
+                    Required: [sql]
   # ===== UNCOMMENT TO HERE (Step 6) ======
 
   # ===== UNCOMMENT FROM HERE (Step 7a: Cedar policy engine + RBAC policies) ======
 
-#   # (The Cube SemanticLayer Gateway target lives only in the demo stack; the
-#   # workshop's semantic-layer lab uses its own parallel stack — see the note above.)
+  # (The Cube SemanticLayer Gateway target lives only in the demo stack; the
+  # workshop's semantic-layer lab uses its own parallel stack — see the note above.)
 
-#   #============================================================================
-#   # Policy Engine + Cedar Policies
-#   #============================================================================
-#   PolicyEngine:
-#     Type: AWS::BedrockAgentCore::PolicyEngine
-#     Properties:
-#       Name: AgenticAnalyticsPolicyEngine
-#       Description: Cedar policy engine for Agentic Analytics RBAC
+  #============================================================================
+  # Policy Engine + Cedar Policies
+  #============================================================================
+  PolicyEngine:
+    Type: AWS::BedrockAgentCore::PolicyEngine
+    Properties:
+      Name: AgenticAnalyticsPolicyEngine
+      Description: Cedar policy engine for Agentic Analytics RBAC
 
-#   AllowAllToolsPolicy:
-#     Type: AWS::BedrockAgentCore::Policy
-#     DependsOn: PolicyEngine
-#     Properties:
-#       Name: allow_all_tools
-#       PolicyEngineId: !GetAtt PolicyEngine.PolicyEngineId
-#       ValidationMode: IGNORE_ALL_FINDINGS
-#       Description: Base permit — allow all tools for any authenticated principal
-#       Definition:
-#         Cedar:
-#           Statement: !Sub |
-#             permit(
-#               principal,
-#               action,
-#               resource == AgentCore::Gateway::"${Gateway.GatewayArn}"
-#             );
+  AllowAllToolsPolicy:
+    Type: AWS::BedrockAgentCore::Policy
+    DependsOn: PolicyEngine
+    Properties:
+      Name: allow_all_tools
+      PolicyEngineId: !GetAtt PolicyEngine.PolicyEngineId
+      ValidationMode: IGNORE_ALL_FINDINGS
+      Description: Base permit — allow all tools for any authenticated principal
+      Definition:
+        Cedar:
+          Statement: !Sub |
+            permit(
+              principal,
+              action,
+              resource == AgentCore::Gateway::"${Gateway.GatewayArn}"
+            );
 
-#   # Cedar action names use triple underscore: TargetName___tool_name.
-#   # These two policies enforce role-based access on top of allow_all_tools.
-#   # Take effect when the Gateway's PolicyMode is ENFORCE; logged-only when LOG_ONLY.
-#   ForbidWriteAnalystPolicy:
-#     Type: AWS::BedrockAgentCore::Policy
-#     DependsOn:
-#       - AllowAllToolsPolicy
-#       - ApiIntegTarget
-#     Properties:
-#       Name: forbid_write_analyst
-#       PolicyEngineId: !GetAtt PolicyEngine.PolicyEngineId
-#       ValidationMode: IGNORE_ALL_FINDINGS
-#       Description: Forbid create_booking for analyst role
-#       Definition:
-#         Cedar:
-#           Statement: !Sub |
-#             forbid(
-#               principal is AgentCore::OAuthUser,
-#               action == AgentCore::Action::"APIInteg___create_booking_tool",
-#               resource == AgentCore::Gateway::"${Gateway.GatewayArn}"
-#             )
-#             when {
-#               principal.hasTag("custom:role") &&
-#               principal.getTag("custom:role") == "analyst"
-#             };
+  # Cedar action names use triple underscore: TargetName___tool_name.
+  # These two policies enforce role-based access on top of allow_all_tools.
+  # Take effect when the Gateway's PolicyMode is ENFORCE; logged-only when LOG_ONLY.
+  ForbidWriteAnalystPolicy:
+    Type: AWS::BedrockAgentCore::Policy
+    DependsOn:
+      - AllowAllToolsPolicy
+      - ApiIntegTarget
+    Properties:
+      Name: forbid_write_analyst
+      PolicyEngineId: !GetAtt PolicyEngine.PolicyEngineId
+      ValidationMode: IGNORE_ALL_FINDINGS
+      Description: Forbid create_booking for analyst role
+      Definition:
+        Cedar:
+          Statement: !Sub |
+            forbid(
+              principal is AgentCore::OAuthUser,
+              action == AgentCore::Action::"APIInteg___create_booking_tool",
+              resource == AgentCore::Gateway::"${Gateway.GatewayArn}"
+            )
+            when {
+              principal.hasTag("custom:role") &&
+              principal.getTag("custom:role") == "analyst"
+            };
 
-#   ForbidCustomSqlStaffPolicy:
-#     Type: AWS::BedrockAgentCore::Policy
-#     DependsOn:
-#       - AllowAllToolsPolicy
-#       - CustomSqlTarget
-#     Properties:
-#       Name: forbid_text2sql_staff
-#       PolicyEngineId: !GetAtt PolicyEngine.PolicyEngineId
-#       ValidationMode: IGNORE_ALL_FINDINGS
-#       Description: Forbid Custom SQL tools for staff role
-#       Definition:
-#         Cedar:
-#           Statement: !Sub |
-#             forbid(
-#               principal is AgentCore::OAuthUser,
-#               action in [
-#                 AgentCore::Action::"CustomSQL___text_to_sql_tool",
-#                 AgentCore::Action::"CustomSQL___get_schema_context_tool",
-#                 AgentCore::Action::"CustomSQL___execute_sql_tool"
-#               ],
-#               resource == AgentCore::Gateway::"${Gateway.GatewayArn}"
-#             )
-#             when {
-#               principal.hasTag("custom:role") &&
-#               principal.getTag("custom:role") == "staff"
-#             };
+  ForbidCustomSqlStaffPolicy:
+    Type: AWS::BedrockAgentCore::Policy
+    DependsOn:
+      - AllowAllToolsPolicy
+      - CustomSqlTarget
+    Properties:
+      Name: forbid_text2sql_staff
+      PolicyEngineId: !GetAtt PolicyEngine.PolicyEngineId
+      ValidationMode: IGNORE_ALL_FINDINGS
+      Description: Forbid Custom SQL tools for staff role
+      Definition:
+        Cedar:
+          Statement: !Sub |
+            forbid(
+              principal is AgentCore::OAuthUser,
+              action in [
+                AgentCore::Action::"CustomSQL___text_to_sql_tool",
+                AgentCore::Action::"CustomSQL___get_schema_context_tool",
+                AgentCore::Action::"CustomSQL___execute_sql_tool"
+              ],
+              resource == AgentCore::Gateway::"${Gateway.GatewayArn}"
+            )
+            when {
+              principal.hasTag("custom:role") &&
+              principal.getTag("custom:role") == "staff"
+            };
   # ===== UNCOMMENT TO HERE (Step 7a) ======
 
   #============================================================================
@@ -1192,72 +1192,72 @@ Resources:
 
   # ===== UNCOMMENT FROM HERE (Step 8: Bedrock Guardrail) ======
 
-#   #============================================================================
-#   # Bedrock Guardrail (optional — controlled by EnableGuardrail param)
-#   # Wires into the agent at runtime via GUARDRAIL_ID + GUARDRAIL_VERSION env
-#   # vars (read by app/agentcore_strands/unicorn_rental_agent.py).
-#   #============================================================================
-#   Guardrail:
-#     Type: AWS::Bedrock::Guardrail
-#     Properties:
-#       Name: !Sub ${EnvironmentName}-guardrail
-#       Description: Guardrail for Unicorn Rental Analytics agent — blocks off-topic, harmful content, sensitive PII, and database schema leakage
-#       BlockedInputMessaging: I can only help with unicorn rental analytics questions. Please ask about bookings, revenue, customers, or unicorn management.
-#       BlockedOutputsMessaging: I'm unable to provide that response as it may contain inappropriate or restricted content.
-#       TopicPolicyConfig:
-#         TopicsConfig:
-#           - Name: DangerousAdvice
-#             Type: DENY
-#             Definition: Requests for medical diagnosis or treatment, financial investment advice, legal counsel, tax guidance, or any professional advice that requires licensed expertise.
-#             Examples:
-#               - Should I invest in this stock?
-#               - What medication should I take for my headache?
-#               - Is this contract legally binding?
-#               - How should I file my taxes?
-#               - Can you diagnose my symptoms?
-#       ContentPolicyConfig:
-#         FiltersConfig:
-#           - Type: HATE
-#             InputStrength: LOW
-#             OutputStrength: MEDIUM
-#           - Type: INSULTS
-#             InputStrength: LOW
-#             OutputStrength: MEDIUM
-#           - Type: VIOLENCE
-#             InputStrength: LOW
-#             OutputStrength: MEDIUM
-#           - Type: SEXUAL
-#             InputStrength: LOW
-#             OutputStrength: MEDIUM
-#           - Type: MISCONDUCT
-#             InputStrength: LOW
-#             OutputStrength: MEDIUM
-#           - Type: PROMPT_ATTACK
-#             InputStrength: HIGH
-#             OutputStrength: NONE
-#       SensitiveInformationPolicyConfig:
-#         PiiEntitiesConfig:
-#           - Type: PHONE
-#             Action: BLOCK
-#           - Type: US_SOCIAL_SECURITY_NUMBER
-#             Action: BLOCK
-#           - Type: CREDIT_DEBIT_CARD_NUMBER
-#             Action: BLOCK
-#           - Type: CREDIT_DEBIT_CARD_CVV
-#             Action: BLOCK
-#           - Type: CREDIT_DEBIT_CARD_EXPIRY
-#             Action: BLOCK
-#           - Type: US_BANK_ACCOUNT_NUMBER
-#             Action: BLOCK
-#           - Type: US_BANK_ROUTING_NUMBER
-#             Action: BLOCK
-#           - Type: PIN
-#             Action: BLOCK
-#           - Type: PASSWORD
-#             Action: BLOCK
-#       WordPolicyConfig:
-#         ManagedWordListsConfig:
-#           - Type: PROFANITY
+  #============================================================================
+  # Bedrock Guardrail (optional — controlled by EnableGuardrail param)
+  # Wires into the agent at runtime via GUARDRAIL_ID + GUARDRAIL_VERSION env
+  # vars (read by app/agentcore_strands/unicorn_rental_agent.py).
+  #============================================================================
+  Guardrail:
+    Type: AWS::Bedrock::Guardrail
+    Properties:
+      Name: !Sub ${EnvironmentName}-guardrail
+      Description: Guardrail for Unicorn Rental Analytics agent — blocks off-topic, harmful content, sensitive PII, and database schema leakage
+      BlockedInputMessaging: I can only help with unicorn rental analytics questions. Please ask about bookings, revenue, customers, or unicorn management.
+      BlockedOutputsMessaging: I'm unable to provide that response as it may contain inappropriate or restricted content.
+      TopicPolicyConfig:
+        TopicsConfig:
+          - Name: DangerousAdvice
+            Type: DENY
+            Definition: Requests for medical diagnosis or treatment, financial investment advice, legal counsel, tax guidance, or any professional advice that requires licensed expertise.
+            Examples:
+              - Should I invest in this stock?
+              - What medication should I take for my headache?
+              - Is this contract legally binding?
+              - How should I file my taxes?
+              - Can you diagnose my symptoms?
+      ContentPolicyConfig:
+        FiltersConfig:
+          - Type: HATE
+            InputStrength: LOW
+            OutputStrength: MEDIUM
+          - Type: INSULTS
+            InputStrength: LOW
+            OutputStrength: MEDIUM
+          - Type: VIOLENCE
+            InputStrength: LOW
+            OutputStrength: MEDIUM
+          - Type: SEXUAL
+            InputStrength: LOW
+            OutputStrength: MEDIUM
+          - Type: MISCONDUCT
+            InputStrength: LOW
+            OutputStrength: MEDIUM
+          - Type: PROMPT_ATTACK
+            InputStrength: HIGH
+            OutputStrength: NONE
+      SensitiveInformationPolicyConfig:
+        PiiEntitiesConfig:
+          - Type: PHONE
+            Action: BLOCK
+          - Type: US_SOCIAL_SECURITY_NUMBER
+            Action: BLOCK
+          - Type: CREDIT_DEBIT_CARD_NUMBER
+            Action: BLOCK
+          - Type: CREDIT_DEBIT_CARD_CVV
+            Action: BLOCK
+          - Type: CREDIT_DEBIT_CARD_EXPIRY
+            Action: BLOCK
+          - Type: US_BANK_ACCOUNT_NUMBER
+            Action: BLOCK
+          - Type: US_BANK_ROUTING_NUMBER
+            Action: BLOCK
+          - Type: PIN
+            Action: BLOCK
+          - Type: PASSWORD
+            Action: BLOCK
+      WordPolicyConfig:
+        ManagedWordListsConfig:
+          - Type: PROFANITY
   # ===== UNCOMMENT TO HERE (Step 8) ======
 
   #============================================================================
@@ -1757,8 +1757,8 @@ Resources:
         OTEL_PYTHON_DISTRO: aws_distro
         OTEL_PYTHON_CONFIGURATOR: aws_configurator
         OTEL_TRACES_SAMPLER: always_on
-        GUARDRAIL_ID: ''        # Step 8: replace '' with  !Ref Guardrail
-        GUARDRAIL_VERSION: ''   # Step 8: replace '' with  'DRAFT'
+        GUARDRAIL_ID: !Ref Guardrail        # Step 8: replace '' with  !Ref Guardrail
+        GUARDRAIL_VERSION: 'DRAFT'   # Step 8: replace '' with  'DRAFT'
         MEMORY_ID: !GetAtt AgentMemory.MemoryId
         SOP_S3_BUCKET: !Ref ArtifactsBucket
         # Charts: the agent renders matplotlib PNGs in the custom Code Interpreter
